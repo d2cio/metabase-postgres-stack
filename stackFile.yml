@@ -1,0 +1,50 @@
+version: '1.0'
+services:
+  - name: db
+    type: postgres
+    version: 11.1
+    configuration: StandAlone
+    ports:
+      - 5432
+    username: metabase
+    database: metabase
+    userPassword: null
+    remoteAccess: false
+    deployTo:
+      - metabase
+
+  - name: metabase
+    type: docker
+    image: metabase/metabase
+    version: latest
+    ports:
+      - 3000
+    remoteAccess: false
+    env:
+      MB_DB_TYPE: postgres
+      MB_DB_DBNAME: "{{=service('db').get('database')}}"
+      MB_DB_PORTMB_DB_PORT: "{{=service('db').getMainPort()}}"
+      MB_DB_USER: "{{=service('db').get('username')}}"
+      MB_DB_PASS: "{{=service('db').get('userPassword')}}"
+      MB_DB_HOST: "{{=service('db').getMasterAlias()}}"
+      MB_ENCRYPTION_SECRET_KEY: "{{=randomString(32)}}"
+    deployTo:
+      - metabase
+
+  - name: web
+    type: nginx
+    version: 1.15
+    ports:
+      - 80
+      - 443
+    remoteAccess: true
+    serviceFiles:
+      - name: metabase
+    deployTo:
+      - metabase
+
+hosts:
+  - name: metabase
+    requirements:
+      cores: 1
+      memory: 4
